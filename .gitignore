@@ -1,0 +1,138 @@
+# /.gitignore
+# iOS Frameworks Benchmark Project
+
+## Xcode
+*.xcodeproj/
+*.xcworkspace/
+!Package.swift
+*.xcuserstate
+*.xcuserdatad
+xcuserdata/
+DerivedData/
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+*.xcbkptlist
+*.xcconfig
+build/
+Build/
+*.build/
+*.swiftpm/
+
+## Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+*.swiftpm/xcode/
+
+## CocoaPods
+Pods/
+Podfile.lock
+*.xcworkspace
+!default.xcworkspace
+
+## Carthage
+Carthage/
+Carthage/Build/
+
+## Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+*.swp
+*~
+
+## iOS
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Flutter (for Flutter examples)
+**/flutter_benchmark/.dart_tool/
+**/flutter_benchmark/.packages
+**/flutter_benchmark/build/
+**/flutter_benchmark/ios/Flutter/App.framework
+**/flutter_benchmark/ios/Flutter/Flutter.framework
+**/flutter_benchmark/ios/Flutter/Flutter.podspec
+**/flutter_benchmark/ios/Flutter/Generated.xcconfig
+**/flutter_benchmark/ios/Flutter/ephemeral/
+**/flutter_benchmark/ios/Flutter/flutter_assets/
+**/flutter_benchmark/ios/Runner/GeneratedPluginRegistrant.h
+**/flutter_benchmark/ios/Runner/GeneratedPluginRegistrant.m
+**/flutter_benchmark/ios/Runner/Info.plist
+**/flutter_benchmark/ios/Runner/Runner-Bridging-Header.h
+**/flutter_benchmark/ios/ServiceDefinitions.json
+**/flutter_benchmark/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/
+**/flutter_benchmark/ios/Runner.xcodeproj/xcuserdata/
+**/flutter_benchmark/ios/Runner.xcworkspace/xcuserdata/
+**/flutter_benchmark/ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+**/flutter_benchmark/android/.gradle/
+**/flutter_benchmark/android/app/.gradle/
+**/flutter_benchmark/android/local.properties
+**/flutter_benchmark/android/**/generated/
+**/flutter_benchmark/android/**/build/
+**/flutter_benchmark/android/**/*.iml
+**/flutter_benchmark/android/**/*.lock
+**/flutter_benchmark/android/**/*.class
+**/flutter_benchmark/pubspec.lock
+**/flutter_benchmark/.flutter-plugins
+**/flutter_benchmark/.flutter-plugins-dependencies
+
+## React Native (for future examples)
+**/reactnative_benchmark/node_modules/
+**/reactnative_benchmark/npm-debug.log
+**/reactnative_benchmark/yarn-error.log
+**/reactnative_benchmark/.expo/
+**/reactnative_benchmark/web-build/
+**/reactnative_benchmark/android/app/build/
+**/reactnative_benchmark/ios/build/
+
+## Logs and Reports
+*.log
+*.xcresult
+benchmark_results/
+Results/
+
+## Environment
+.env
+.env.local
+.env.*.local
+
+## IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+## Test reports
+test_output/
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+## Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+## Benchmark specific
+benchmark_output.json
+benchmark_data.csv
+performance_metrics/
