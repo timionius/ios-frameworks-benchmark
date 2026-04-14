@@ -1,15 +1,23 @@
+// Examples/flutter_benchmark/ios/Runner/SceneDelegate.swift
 import UIKit
+import Flutter
 import PixelSamplerSDK
 
 class CustomSceneDelegate: NSObject, UIWindowSceneDelegate {
     
+    var window: UIWindow?
+    
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // This is the hook you requested
         if let windowScene = scene as? UIWindowScene {
-            // You can also access windowScene.windows here if needed
+            // Initialize SDK - marks APP_START
             PixelSamplerSDK.initialize()
+            
+            self.window = windowScene.windows.first
+            
             if let window = windowScene.windows.first {
-                PixelSamplerSDK.windowIsReady(window)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    PixelSamplerSDK.windowIsReady(window)
+                }
             }
         }
     }

@@ -11,7 +11,9 @@ final class BenchmarkCoordinator: ObservableObject {
     @Published var isComplete = false
     
     private var appStartTime: Double = 0
-    private var pixelSampler: PixelSampler?
+    private var isSamplingComplete = false
+    private var swiftUISampler: SwiftUIPixelSampler?
+    private var flutterSampler: FlutterMetalSampler?
     
     private init() {}
     
@@ -22,60 +24,85 @@ final class BenchmarkCoordinator: ObservableObject {
         print("🚀 [BENCHMARK] APP_START: 0.000ms")
     }
     
-    func startSampling(on view: UIView, points: [CGPoint], samplingSize: Int = 4) {
-        print("📍 [BENCHMARK] Starting pixel sampling (size: \(samplingSize)x\(samplingSize))")
-        
-        pixelSampler = PixelSampler(
-            targetView: view,
-            samplingPoints: points,
-            samplingSize: samplingSize,
-            requiredUnchangedFrames: 4
-        )
-        
-        pixelSampler?.startSampling { [weak self] firstStableFrameTime in
-            guard let self = self else { return }
-            
-            let relativeMs = (firstStableFrameTime - self.appStartTime) * 1000
-            
-            DispatchQueue.main.async {
-                self.events[.renderComplete] = firstStableFrameTime - self.appStartTime
-                print("✅ [BENCHMARK] RENDER_COMPLETE: \(String(format: "%.3f", relativeMs))ms")
-                self.isComplete = true
-                self.printResults()
-            }
-        }
-    }
-    
     func markEvent(_ event: BenchmarkEvent) {
         let timestamp = CACurrentMediaTime()
         let relativeMs = (timestamp - appStartTime) * 1000
-        
-        DispatchQueue.main.async {
-            self.events[event] = timestamp - self.appStartTime
-            print("✅ [BENCHMARK] \(event.rawValue): \(String(format: "%.3f", relativeMs))ms")
-        }
+        print("✅ [BENCHMARK] \(event.rawValue): \(String(format: "%.3f", relativeMs))ms")
+        events[event] = timestamp - appStartTime
     }
     
-    private func printResults() {
-        guard let renderComplete = events[.renderComplete] else {
-            print("⚠️ [BENCHMARK] Cannot print results - missing events")
+    // MARK: - Main Entry Point
+    
+    func startSampling(window: UIWindow) {
+        guard let rootView = window.rootViewController?.view else {
+            print("⚠️ [BENCHMARK] No root view found")
             return
         }
         
-        let totalTime = renderComplete * 1000
+        let centerX = window.bounds.width / 2
+        let centerY = window.bounds.height / 2
+        let point = CGPoint(x: centerX, y: centerY)
         
-        print("\n" + String(repeating: "═", count: 55))
-        print("📊 BENCHMARK RESULTS")
-        print(String(repeating: "═", count: 55))
-        
-        if let frameworkEntry = events[.frameworkEntry] {
-            print("  APP_START → FRAMEWORK:        \(String(format: "%7.3f", frameworkEntry * 1000))ms")
+        // Detect if this is Flutter (has FlutterView)
+        if findFlutterView(in: rootView) != nil {
+            print("📍 Flutter detected, using Metal sampling")
+            startFlutterSampling(on: rootView)
+        } else {
+            print("📍 SwiftUI/UIKit detected, using CALayer sampling")
+            startSwiftUISampling(on: rootView, at: point)
         }
-        
-        print("  ─────────────────────────────────────────")
-        print("  RENDER COMPLETE:               \(String(format: "%7.3f", totalTime))ms")
-        print(String(repeating: "═", count: 55))
     }
+    
+    // MARK: - Flutter Metal Sampling
+    
+    private func startFlutterSampling(on view: UIView) {
+        flutterSampler = FlutterMetalSampler()
+        flutterSampler?.startSampling(on: view) { [weak self] finalHash in
+            guard let self = self else { return }
+            let elapsed = (CACurrentMediaTime() - self.appStartTime) * 1000
+            print("\n✅ Render complete")
+            print("✅ Total time: \(String(format: "%.1f", elapsed))ms")
+            self.events[.renderComplete] = elapsed / 1000
+            self.isComplete = true
+        }
+    }
+    
+    // MARK: - SwiftUI/UIKit CALayer Sampling
+    
+    private func startSwiftUISampling(on view: UIView, at point: CGPoint) {
+        swiftUISampler = SwiftUIPixelSampler(
+            targetView: view,
+            samplingPoints: [point],
+            samplingSize: 4,
+            requiredUnchangedFrames: 4
+        )
+        
+        swiftUISampler?.startSampling { [weak self] firstStableTime in
+            guard let self = self else { return }
+            let elapsed = (CACurrentMediaTime() - self.appStartTime) * 1000
+            print("\n✅ Render complete")
+            print("✅ Total time: \(String(format: "%.1f", elapsed))ms")
+            self.events[.renderComplete] = elapsed / 1000
+            self.isComplete = true
+        }
+    }
+    
+    // MARK: - Flutter Detection Helper
+    
+    private func findFlutterView(in view: UIView) -> UIView? {
+        let viewType = String(describing: type(of: view))
+        if viewType.contains("FlutterView") {
+            return view
+        }
+        for subview in view.subviews {
+            if let found = findFlutterView(in: subview) {
+                return found
+            }
+        }
+        return nil
+    }
+    
+    // MARK: - Results
     
     func getResults() -> BenchmarkResults? {
         guard let renderComplete = events[.renderComplete] else { return nil }
@@ -90,9 +117,6 @@ final class BenchmarkCoordinator: ObservableObject {
             details["app_to_framework"] = frameworkEntry * 1000
         }
         
-        return BenchmarkResults(
-            totalTimeMs: totalTimeMs,
-            details: details
-        )
+        return BenchmarkResults(totalTimeMs: totalTimeMs, details: details)
     }
 }

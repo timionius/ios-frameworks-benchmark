@@ -1,7 +1,6 @@
-// Sources/PixelSamplerSDK/Internal/PixelSampler.swift
 import UIKit
 
-final class PixelSampler {
+final class SwiftUIPixelSampler {
     private let targetView: UIView
     private let samplingPoints: [CGPoint]
     private let samplingSize: Int
@@ -69,7 +68,7 @@ final class PixelSampler {
             
             // Ignore transparent (alpha < 50) and very dark/black pixels
             // Also ignore the greenish background (65280 = r=0, g=255, b=0, a=0)
-            let isTransparent = alpha < 70
+            let isTransparent = alpha < 50
             let isBackground = (r < 10 && g < 10 && b < 10) || (r == 0 && g == 255 && b == 0)
             
             return !isTransparent && !isBackground && (r > 10 || g > 10 || b > 10)
