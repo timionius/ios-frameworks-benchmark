@@ -1,101 +1,72 @@
-# iOS Frameworks Benchmark
+# 🚀 PixelSamplerSDK
 
-Cross-platform benchmarking SDK for measuring render performance of iOS UI frameworks using pixel sampling and stability detection.
+PixelSamplerSDK is a high-precision performance monitoring tool for iOS. It captures the true visual app-start time by monitoring pixel-level stability in the view hierarchy. It is specifically optimized for Flutter (Metal/Impeller) and Native UIKit applications.
 
-## 🎯 Purpose
+## Key Features
 
-Compare the **actual render performance** of different iOS UI frameworks:
-- SwiftUI
-- UIKit  
-- React Native
-- Flutter
-- Compose Multiplatform
+- Dual-Engine Support: Automatically detects Flutter (Metal) vs. Native UIKit and chooses the optimal synchronization path.
+- Zero-Flicker Metal Sync: Synchronizes with the GPU via MTLCommandBuffer completion handlers to avoid the common "black screen" flicker caused by nextDrawable() calls.
+- Last-Motion Benchmark: Calculates timing based on the actual last frame of an animation, providing millisecond accuracy for AnimatedContainer or Hero transitions.
+- Thread Safety: Architected with @MainActor for compile-time safety
 
-## 📊 What It Measures
+# 📦 Installation
 
-| Metric | Description |
-|--------|-------------|
-| **App Start → Framework Entry** | Time from launch to framework initialization |
-| **Framework Entry → Layout Start** | Time to begin layout calculation |
-| **Layout Duration** | Time spent calculating layout |
-| **Layout → Render Complete** | Time from layout to fully rendered images |
-| **Total Render Time** | Complete time from app launch to stable render |
+Currently, the SDK is available as a local Swift package. Add it to your project via File > Add Packages... > Add Local.
 
-## 🔬 How It Works
+# 🛠 Integration
 
-1. **Swizzling Injection** - Captures earliest possible window creation
-2. **Pixel Sampling** - Monitors specific screen regions (image centers)
-3. **Stability Detection** - Waits for 4 consecutive unchanged frames
-4. **CALayer.render** - Accurate content capture without Metal overhead
+## 1. Initialize the SDK
 
-## 🚀 Quick Start
+Initialize as early as possible (e.g., the first line of didFinishLaunchingWithOptions) to capture the absolute T=0.
 
-### SwiftUI
 ```swift
-// AppDelegate
-PixelSamplerSDK.initialize()
-
-// ContentView
-.onAppear {
-    PixelSamplerSDK.shared.startBenchmark()
+// AppDelegate.swift
+func application(_ application: UIApplication, didFinishLaunchingWithOptions ...) -> Bool {
+    PixelSamplerSDK.initialize()
+    return true
 }
 ```
 
-### UIKit
-```swift
-// AppDelegate
-PixelSamplerSDK.initialize()
+## 2. Connect the Window
 
-// ViewController
-override func viewDidAppear(_ animated: Bool) {
-    PixelSamplerSDK.shared.startBenchmark()
-    PixelSamplerSDK.shared.markLayoutStarted()
-    // after layout
-    PixelSamplerSDK.shared.markLayoutFinished()
+Pass your primary window in the SceneDelegate. The SDK will automatically locate the FlutterView or root UIView.
+
+```swift
+// SceneDelegate.swift
+func scene(_ scene: UIScene, willConnectTo session: ..., options ...) {
+    guard let windowScene = (scene as? UIWindowScene) else { return }
+    let window = UIWindow(windowScene: windowScene)
+    self.window = window
+
+    // Start sampling
+    PixelSamplerSDK.windowIsReady(window)
 }
 ```
 
-### React Native
+## 3. Retrieve Results
 
-import { Benchmark } from 'ios-frameworks-benchmark';
-```js
-Benchmark.initialize();
-Benchmark.startBenchmark(3);
-const timeMs = await Benchmark.waitForComplete();
+The SDK currently provides real-time benchmarking data directly to the Xcode Debug Console.
+
+Note: The programmatic BenchmarkResults object and its export functions are currently in Alpha/Testing. For reliable production metrics, please use the Console Printout method below.
+
+### Programmatic Access (Experimental):
+
+If you wish to test the reporting structure, you can access it via the shared instance:
+
+```swift
+// Caution: API subject to change in future test cycles
+if let results = PixelSamplerSDK.shared.getResults() {
+    print("Reported Time: \(results.totalTimeMs)ms")
+}
 ```
 
-## 📈 Example Results
+# 🔍 How it Works
 
-══════════════════════════════════════════════════════════════════
-📊 RENDER BENCHMARK RESULTS
-══════════════════════════════════════════════════════════════════
-
-  App Start → Framework Entry:        45.234ms
-  Framework Entry → Layout Start:      0.889ms
-  Layout Duration:                     0.002ms
-  Layout → Render Complete:           32.331ms
-  ─────────────────────────────────────────────────────
-  TOTAL TO RENDER COMPLETE:           78.456ms
-
-══════════════════════════════════════════════════════════════════
-  ✅ Render detected by pixel stability
-  📍 First unchanged frame in series of 4
-══════════════════════════════════════════════════════════════════
-
-## 🏗️ Architecture
-```text
-ios-frameworks-benchmark/
-├── PixelSamplerSDK/     # Core benchmarking engine
-├── Examples/            # Framework integration examples
-│   ├── SwiftUI/
-│   ├── UIKit/
-│   ├── ReactNative/
-│   ├── Flutter/
-│   └── Compose/
-├── Tests/               # Unit tests
-├── Scripts/             # Benchmark automation
-└── Results/             # Performance data
-```
+1. T=0: Captured on initialize().
+2. GPU Handshake: On Flutter views, we commit an empty command buffer to the GPU. When it completes, we know the GPU has finished rendering Flutter's frames.
+3. Passive Snapshot: We take a microscopic 100x100 snapshot of the screen center using drawHierarchy.
+4. Stability Logic: We compare the DJB2 hash of each snapshot.
+5. Benchmark Point: As soon as the hash stops changing for the duration of requiredStableFrames, we finalize the sampling job. The reported time is the timestamp of the first frame in that unchanged sequence, ensuring the benchmark represents the exact moment the animation ended.
 
 ## 🔧 Requirements
 

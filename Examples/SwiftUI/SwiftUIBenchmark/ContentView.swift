@@ -1,4 +1,3 @@
-// ContentView.swift
 import SwiftUI
 import PixelSamplerSDK
 
@@ -14,7 +13,6 @@ struct ContentView: View {
         if !Self.hasMarkedFrameworkEntry {
             Self.hasMarkedFrameworkEntry = true
             PixelSamplerSDK.shared.markEvent(.frameworkEntry)
-            print("🏗️ [BENCHMARK] FRAMEWORK_ENTRY marked at ContentView init")
         }
     }
     
@@ -45,10 +43,7 @@ struct ContentView: View {
         }
         .ignoresSafeArea()
         .onAppear {
-            // Start animation after view appears
-            print("🎬 [TEST] Starting fade animation")
-            
-            withAnimation(.easeOut(duration: 0.5)) {
+            withAnimation(.linear(duration: 1)) {
                 opacity = 1
                 scale = 1
             }

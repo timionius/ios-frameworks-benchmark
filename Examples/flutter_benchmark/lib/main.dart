@@ -59,8 +59,7 @@ class _BenchmarkHomePageState extends State<BenchmarkHomePage> {
 
   Widget _buildAnimatedIcon(IconData icon) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 1000),
       width: _size,
       height: _size,
       decoration: BoxDecoration(

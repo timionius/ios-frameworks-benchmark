@@ -1,9 +1,7 @@
-// Sources/PixelSamplerSDK/PublicAPI.swift
 import Foundation
 import UIKit
 
-@frozen
-public struct PixelSamplerSDK {
+public final class PixelSamplerSDK {
     
     public static let shared = PixelSamplerSDK()
     
@@ -19,6 +17,7 @@ public struct PixelSamplerSDK {
     
     // MARK: - Main Entry Point
     
+    @MainActor
     public static func windowIsReady(_ window: UIWindow) {
         shared.coordinator.startSampling(window: window)
     }
@@ -34,10 +33,6 @@ public struct PixelSamplerSDK {
     public func getResults() -> BenchmarkResults? {
         return coordinator.getResults()
     }
-    
-    public var isComplete: Bool {
-        return coordinator.isComplete
-    }
 }
 
 // MARK: - Public Types
@@ -49,12 +44,25 @@ public enum BenchmarkEvent: String, CaseIterable {
 }
 
 @frozen
-public struct BenchmarkResults {
+public struct BenchmarkResults: Encodable {
     public let totalTimeMs: Double
     public let details: [String: Double]
+    public let timestamp: Date
     
     public init(totalTimeMs: Double, details: [String: Double]) {
         self.totalTimeMs = totalTimeMs
         self.details = details
+        self.timestamp = Date()
+    }
+    
+    public func timeForEvent(_ event: BenchmarkEvent) -> Double? {
+        return details[event.rawValue]
+    }
+    
+    public var jsonRepresentation: String? {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        guard let data = try? encoder.encode(self) else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 }
