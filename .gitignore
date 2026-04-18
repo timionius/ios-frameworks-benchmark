@@ -92,13 +92,17 @@ Thumbs.db
 **/flutter_benchmark/.flutter-plugins-dependencies
 
 ## React Native (for future examples)
-**/reactnative_benchmark/node_modules/
-**/reactnative_benchmark/npm-debug.log
-**/reactnative_benchmark/yarn-error.log
-**/reactnative_benchmark/.expo/
-**/reactnative_benchmark/web-build/
-**/reactnative_benchmark/android/app/build/
-**/reactnative_benchmark/ios/build/
+**/ReactNative/node_modules/
+**/ReactNative/npm-debug.log
+**/ReactNative/yarn-error.log
+**/ReactNative/.expo/
+**/ReactNative/web-build/
+**/ReactNative/android/app/build/
+**/ReactNative/ios/build/
+**/ReactNative/vendor/
+**/ReactNative/.bundle/
+**/ReactNative/ios/.xcode.env.local
+**/ReactNative/ios/main.jsbundle
 
 ## Logs and Reports
 *.log
