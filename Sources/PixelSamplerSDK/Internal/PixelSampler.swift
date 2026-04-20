@@ -10,6 +10,7 @@ public class PixelSampler {
     // Callbacks & State
     private var completion: ((Double) -> Void)?
     private var startTime: CFTimeInterval = 0
+    private var sampleRenderStartTime: CFTimeInterval = 0
     private var lastMotionTime: CFTimeInterval = 0
     private var lastRawHash: UInt64 = 0
     private var frameCount = 0
@@ -22,7 +23,10 @@ public class PixelSampler {
     
     public init() {}
     
-    public func startSampling(on view: UIView, completion: @escaping (Double) -> Void) {
+    public func startSampling(
+        on view: UIView,
+        completion: @escaping (Double) -> Void
+    ) {
         self.targetView = view
         self.completion = completion
         self.isComplete = false
@@ -33,15 +37,18 @@ public class PixelSampler {
         self.lastMotionTime = self.startTime
         
         let viewType = String(describing: type(of: view))
-        if viewType.contains("FlutterView"), let metalLayer = findMetalLayer(in: view) {
+        if let metalLayer = findMetalLayer(in: view) {
             self.commandQueue = metalLayer.device?.makeCommandQueue()
-            PSLog("\n✅ [PixelSampler] Flutter/Metal detected - GPU Sync enabled")
+            PSLog("\n✅ [PixelSampler] Metal detected - GPU Sync enabled")
         } else {
             self.commandQueue = nil
             PSLog("\n✅ [PixelSampler] Standard UIKit path enabled")
         }
-
-        displayLink = CADisplayLink(target: self, selector: #selector(handleTick))
+        
+        displayLink = CADisplayLink(
+            target: self,
+            selector: #selector(handleTick)
+        )
         displayLink?.add(to: .main, forMode: .common)
     }
     
@@ -61,41 +68,51 @@ public class PixelSampler {
     
     private func performCheck() {
         guard let view = targetView, !isComplete else { return }
-        
-        let rawHash = captureHash(from: view)
+        let rawHash = self.captureHash(from: view)
         
         // Zero-Frame early exit
-        if rawHash == 0 && frameCount > 5 {
-            finalize()
+        if rawHash == 0 && self.frameCount > 5 {
+            self.finalize()
             return
         }
         
-        if rawHash != lastRawHash {
-            lastMotionTime = CACurrentMediaTime()
-            lastRawHash = rawHash
-            consecutiveUnchangedCount = 0
+        if rawHash != self.lastRawHash {
+            self.lastMotionTime = CACurrentMediaTime()
+            self.lastRawHash = rawHash
+            self.consecutiveUnchangedCount = 0
         } else if rawHash != 0 {
-            consecutiveUnchangedCount += 1
-            if consecutiveUnchangedCount >= requiredStableFrames {
-                finalize()
+            self.consecutiveUnchangedCount += 1
+            if self.consecutiveUnchangedCount >= self.requiredStableFrames {
+                self.finalize()
             }
         }
-        frameCount += 1
+        self.frameCount += 1
+        
     }
     
     private func captureHash(from view: UIView) -> UInt64 {
         let center = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
-        let rect = CGRect(x: center.x - (sampleSize/2), y: center.y - (sampleSize/2), width: sampleSize, height: sampleSize)
+        let rect = CGRect(
+            x: center.x - (sampleSize/2),
+            y: center.y - (sampleSize/2),
+            width: sampleSize,
+            height: sampleSize
+        )
         
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
         
-        let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { context in
+        let image = UIGraphicsImageRenderer(
+            size: rect.size,
+            format: format
+        ).image { context in
+            self.sampleRenderStartTime = CACurrentMediaTime()
             context.cgContext.translateBy(x: -rect.origin.x, y: -rect.origin.y)
             view.drawHierarchy(in: view.bounds, afterScreenUpdates: false)
         }
-        return measureHash(name: "DJB2 Mini") { image.samplingHash() }
+        let durationMs = (CACurrentMediaTime() - sampleRenderStartTime) * 1000
+        return measureHash(name: "DJB2") { image.hashValue64() }
     }
     
     private func finalize() {
@@ -106,21 +123,37 @@ public class PixelSampler {
         displayLink = nil
         
         let durationMs = (lastMotionTime - startTime) * 1000
-        PSLog("✅ [PixelSampler] Finished: sample size: \(sampleSize), duration \(String(format: "%.2f", durationMs))ms")
+        PSLog(
+            "✅ [PixelSampler] Finished: sample size: \(sampleSize), duration \(String(format: "%.2f", durationMs))ms"
+        )
         
         completion?(lastMotionTime)
     }
     
     private func findMetalLayer(in view: UIView) -> CAMetalLayer? {
         if let metal = view.layer as? CAMetalLayer { return metal }
-        return view.subviews.compactMap { findMetalLayer(in: $0) }.first
+        
+        if let sublayers = view.layer.sublayers {
+            for layer in sublayers {
+                if let metal = layer as? CAMetalLayer { return metal }
+            }
+        }
+        
+        for subview in view.subviews {
+            print(subview)
+            if let found = findMetalLayer(in: subview) { return found }
+        }
+        return nil
+        
     }
     
     private func measureHash(name: String, block: () -> UInt64) -> UInt64 {
         let startTime = CACurrentMediaTime()
         let result = block()
         let durationMs = (CACurrentMediaTime() - startTime) * 1000
-        print("⏱️ [PixelSampler] hash speed \(name): \(String(format: "%.4f", durationMs))ms")
+        print(
+            "⏱️ [PixelSampler] hash speed \(name): \(String(format: "%.4f", durationMs))ms"
+        )
         return result
     }
 }
@@ -128,7 +161,9 @@ public class PixelSampler {
 fileprivate extension UIImage {
     func hashValue64() -> UInt64 {
         let startTime = CACurrentMediaTime()
-        guard let cgImage = self.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return 0 }
+        guard let cgImage = self.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else {
+            return 0
+        }
         let length = CFDataGetLength(data)
         let buffer = UnsafeBufferPointer(start: bytes, count: length)
         var hash: UInt64 = 5381
@@ -139,7 +174,9 @@ fileprivate extension UIImage {
     }
     
     func samplingHash() -> UInt64 {
-        guard let cgImage = self.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return 0 }
+        guard let cgImage = self.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else {
+            return 0
+        }
         let length = CFDataGetLength(data)
         let buffer = UnsafeBufferPointer(start: bytes, count: length)
         
@@ -150,9 +187,11 @@ fileprivate extension UIImage {
         }
         return hash
     }
-
+    
     func fnv1aHash() -> UInt64 {
-        guard let cgImage = self.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return 0 }
+        guard let cgImage = self.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else {
+            return 0
+        }
         let length = CFDataGetLength(data)
         let buffer = UnsafeBufferPointer(start: bytes, count: length)
         
@@ -163,9 +202,11 @@ fileprivate extension UIImage {
         }
         return hash
     }
-
+    
     func adlerHash() -> UInt64 {
-        guard let cgImage = self.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return 0 }
+        guard let cgImage = self.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else {
+            return 0
+        }
         let length = CFDataGetLength(data)
         let buffer = UnsafeBufferPointer(start: bytes, count: length)
         
@@ -178,5 +219,5 @@ fileprivate extension UIImage {
         }
         return (b << 16) | a
     }
-
+    
 }

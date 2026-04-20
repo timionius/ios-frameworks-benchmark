@@ -104,6 +104,27 @@ Thumbs.db
 **/ReactNative/ios/.xcode.env.local
 **/ReactNative/ios/main.jsbundle
 
+## Compose Multiplatform
+**/ComposeMultiplatform/*.iml
+**/ComposeMultiplatform/.kotlin
+**/ComposeMultiplatform/.gradle
+**/ComposeMultiplatform/**/build/
+**/ComposeMultiplatform/xcuserdata
+**/ComposeMultiplatform/!src/**/build/
+**/ComposeMultiplatform/local.properties
+**/ComposeMultiplatform/.idea
+**/ComposeMultiplatform/.DS_Store
+**/ComposeMultiplatform/captures
+**/ComposeMultiplatform/.externalNativeBuild
+**/ComposeMultiplatform/.cxx
+**/ComposeMultiplatform/*.xcodeproj/*
+**/ComposeMultiplatform/*!*.xcodeproj/project.pbxproj
+**/ComposeMultiplatform/!*.xcodeproj/xcshareddata/
+**/ComposeMultiplatform/!*.xcodeproj/project.xcworkspace/
+**/ComposeMultiplatform/!*.xcworkspace/contents.xcworkspacedata
+**/ComposeMultiplatform/**/xcshareddata/WorkspaceSettings.xcsettings
+**/ComposeMultiplatform/node_modules/
+
 ## Logs and Reports
 *.log
 *.xcresult
