@@ -5,7 +5,6 @@ public class PixelSampler {
     
     private weak var targetView: UIView?
     private var displayLink: CADisplayLink?
-    private var commandQueue: MTLCommandQueue?
     
     // Callbacks & State
     private var completion: ((Double) -> Void)?
@@ -36,37 +35,14 @@ public class PixelSampler {
         self.startTime = CACurrentMediaTime()
         self.lastMotionTime = self.startTime
         
-        let viewType = String(describing: type(of: view))
-        if let metalLayer = findMetalLayer(in: view) {
-            self.commandQueue = metalLayer.device?.makeCommandQueue()
-            PSLog("\n✅ [PixelSampler] Metal detected - GPU Sync enabled")
-        } else {
-            self.commandQueue = nil
-            PSLog("\n✅ [PixelSampler] Standard UIKit path enabled")
-        }
-        
         displayLink = CADisplayLink(
             target: self,
-            selector: #selector(handleTick)
+            selector: #selector(performCheck)
         )
         displayLink?.add(to: .main, forMode: .common)
     }
     
-    @objc private func handleTick() {
-        guard !isComplete else { return }
-        
-        if let queue = commandQueue {
-            let commandBuffer = queue.makeCommandBuffer()
-            commandBuffer?.addCompletedHandler { [weak self] _ in
-                DispatchQueue.main.async { self?.performCheck() }
-            }
-            commandBuffer?.commit()
-        } else {
-            performCheck()
-        }
-    }
-    
-    private func performCheck() {
+    @objc private func performCheck() {
         guard let view = targetView, !isComplete else { return }
         let rawHash = self.captureHash(from: view)
         
@@ -102,16 +78,17 @@ public class PixelSampler {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
-        
+    
         let image = UIGraphicsImageRenderer(
             size: rect.size,
             format: format
         ).image { context in
             self.sampleRenderStartTime = CACurrentMediaTime()
             context.cgContext.translateBy(x: -rect.origin.x, y: -rect.origin.y)
-            view.drawHierarchy(in: view.bounds, afterScreenUpdates: false)
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: self.frameCount % 4 == 0)
         }
         let durationMs = (CACurrentMediaTime() - sampleRenderStartTime) * 1000
+        print("⏱️ [PixelSampler] frame \(frameCount): \(String(format: "%.4f", durationMs))ms")
         return measureHash(name: "DJB2") { image.hashValue64() }
     }
     
