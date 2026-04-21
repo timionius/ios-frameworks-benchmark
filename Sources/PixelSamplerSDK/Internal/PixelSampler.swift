@@ -17,8 +17,8 @@ public class PixelSampler {
     private var isComplete = false
     
     // Configuration
-    private let requiredStableFrames = 10
-    private let sampleSize: CGFloat = 100
+    private let requiredStableFrames = 4
+    private let sampleSize: CGFloat = 70
     
     public init() {}
     
@@ -44,6 +44,10 @@ public class PixelSampler {
     
     @objc private func performCheck() {
         guard let view = targetView, !isComplete else { return }
+        
+        self.frameCount += 1
+        if self.frameCount % 5 != 0 { return }
+
         let rawHash = self.captureHash(from: view)
         
         // Zero-Frame early exit
@@ -62,8 +66,6 @@ public class PixelSampler {
                 self.finalize()
             }
         }
-        self.frameCount += 1
-        
     }
     
     private func captureHash(from view: UIView) -> UInt64 {
@@ -85,11 +87,11 @@ public class PixelSampler {
         ).image { context in
             self.sampleRenderStartTime = CACurrentMediaTime()
             context.cgContext.translateBy(x: -rect.origin.x, y: -rect.origin.y)
-            view.drawHierarchy(in: view.bounds, afterScreenUpdates: self.frameCount % 4 == 0)
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
         }
         let durationMs = (CACurrentMediaTime() - sampleRenderStartTime) * 1000
-        print("⏱️ [PixelSampler] frame \(frameCount): \(String(format: "%.4f", durationMs))ms")
-        return measureHash(name: "DJB2") { image.hashValue64() }
+        PSLog("⏱️ [PixelSampler] frame \(frameCount): \(String(format: "%.4f", durationMs))ms")
+        return image.samplingHash()
     }
     
     private func finalize() {
