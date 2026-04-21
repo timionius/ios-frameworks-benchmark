@@ -87,7 +87,7 @@ public class PixelSampler {
         ).image { context in
             self.sampleRenderStartTime = CACurrentMediaTime()
             context.cgContext.translateBy(x: -rect.origin.x, y: -rect.origin.y)
-            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: false)
         }
         let durationMs = (CACurrentMediaTime() - sampleRenderStartTime) * 1000
         PSLog("⏱️ [PixelSampler] frame \(frameCount): \(String(format: "%.4f", durationMs))ms")
