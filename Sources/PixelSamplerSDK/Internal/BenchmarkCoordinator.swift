@@ -54,15 +54,15 @@ final class BenchmarkCoordinator: ObservableObject {
         
         return BenchmarkResults(totalTimeMs: renderComplete, details: details)
     }
-}
-
-// MARK: - For tests
-
-extension BenchmarkCoordinator {
+    
+    // MARK: - For tests
+    
+#if DEBUG
     func reset() {
         self.appStartTime = 0
-        self.events = [:]
+        self.events.removeAll()
         self.pixelSampler = nil
         PSLog("🧹 [BENCHMARK] Coordinator reset")
     }
+#endif
 }

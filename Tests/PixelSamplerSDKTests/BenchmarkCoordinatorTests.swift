@@ -22,6 +22,8 @@ final class BenchmarkCoordinatorTests: XCTestCase {
     // MARK: - Test 1: App Start Idempotency
     func testMarkAppStartOnlySetsOnce() {
         coordinator.markAppStart()
+        coordinator.markEvent(.renderComplete)
+        
         let firstStart = coordinator.getResults()?.timeForEvent(.applicationStart) ?? -1
         
         // Wait a bit and try to mark start again
@@ -42,6 +44,7 @@ final class BenchmarkCoordinatorTests: XCTestCase {
         Thread.sleep(forTimeInterval: sleepDuration)
         
         coordinator.markEvent(.frameworkEntry)
+        coordinator.markEvent(.renderComplete)
         
         guard let results = coordinator.getResults(),
               let entryTime = results.timeForEvent(.frameworkEntry) else {
@@ -68,9 +71,6 @@ final class BenchmarkCoordinatorTests: XCTestCase {
         coordinator.markAppStart()
         coordinator.markEvent(.frameworkEntry)
         
-        // Manually simulate the sampler finishing
-        let mockEndTime = CACurrentMediaTime() + 1.0 // 1 second later
-        
         // Use a mock duration for the renderComplete event
         coordinator.markEvent(.renderComplete)
         
@@ -81,7 +81,7 @@ final class BenchmarkCoordinatorTests: XCTestCase {
         
         XCTAssertNotNil(results.details["APP_START"])
         XCTAssertNotNil(results.details["FRAMEWORK_ENTRY"])
-        XCTAssertNotNil(results.details["total_time"])
-        XCTAssertEqual(results.totalTimeMs, results.details["total_time"])
+        XCTAssertNotNil(results.details["RENDER_COMPLETE"])
+        XCTAssertEqual(results.totalTimeMs, results.details["RENDER_COMPLETE"])
     }
 }

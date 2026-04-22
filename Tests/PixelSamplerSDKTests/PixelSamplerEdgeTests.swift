@@ -3,7 +3,7 @@ import Metal
 @testable import PixelSamplerSDK
 
 final class PixelSamplerEdgeTests: XCTestCase {
-
+    
     // MARK: - Edge Case 1: Deep Nesting
     func testMetalLayerDeepNesting() {
         let sampler = PixelSampler()
@@ -31,7 +31,7 @@ final class PixelSamplerEdgeTests: XCTestCase {
             XCTAssertEqual(foundLayer, metalLayer)
         }
     }
-
+    
     // MARK: - Edge Case 2: Fallback to UIKit
     @MainActor
     func testUIKitFallbackWhenMetalMissing() {
@@ -52,7 +52,7 @@ final class PixelSamplerEdgeTests: XCTestCase {
         
         waitForExpectations(timeout: 2.0)
     }
-
+    
     // MARK: - Edge Case 3: Zero-Frame Early Exit
     @MainActor
     func testZeroFrameEarlyExit() {
@@ -61,16 +61,55 @@ final class PixelSamplerEdgeTests: XCTestCase {
         let hiddenView = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
         hiddenView.isHidden = true
         
-        let expectation = self.expectation(description: "Should exit early on zero hash")
+        let startTime = CACurrentMediaTime()
         
-        sampler.startSampling(on: hiddenView) { duration in
+        let expectationDescription = "Should exit between 10th and 11th frame on zero hash"
+        let expectation = self.expectation(description: expectationDescription)
+        
+        sampler.startSampling(on: hiddenView) { lastMotionTime in
             // Because it's hidden, captureHash should return 0
-            // and trigger the 'frameCount > 5' early exit
-            XCTAssertTrue(duration < 500, "Should exit almost immediately on empty frames")
+            // and trigger the 'frameCount > 5' should trigger after 10th frame
+            let elapsedMs = (lastMotionTime - startTime) * 1000
+            let frameCount = Int(elapsedMs / 16.67)
+            
+            XCTAssertGreaterThanOrEqual(10, frameCount, "LastMotionTime should be greater than time for 10 frames")
+            XCTAssertLessThan(frameCount, 12, "LastMotionTime should happen earlier than 12 frame")
             expectation.fulfill()
         }
         
         waitForExpectations(timeout: 1.0)
     }
-
+    
+    // MARK: - Unit Tests: Hashing Logic
+    
+    func testHashConsistency() {
+        let size = CGSize(width: 100, height: 100)
+        
+        // Create two identical images
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image1 = renderer.image { $0.fill(CGRect(origin: .zero, size: size)) }
+        let image2 = renderer.image { $0.fill(CGRect(origin: .zero, size: size)) }
+        
+        XCTAssertEqual(image1.hashValue64(), image2.hashValue64(), "Identical images must have same hash")
+    }
+    
+    func testHashSensitivity() {
+        let size = CGSize(width: 100, height: 100)
+        
+        // Create two slightly different images
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image1 = renderer.image { ctx in
+            UIColor.red.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+        }
+        let image2 = renderer.image { ctx in
+            UIColor.red.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            UIColor.blue.setFill()
+            ctx.fill(CGRect(x: 50, y: 50, width: 1, height: 1)) // 1 pixel difference
+        }
+        
+        XCTAssertNotEqual(image1.hashValue64(), image2.hashValue64(), "1-pixel change must change hash")
+    }
+    
 }

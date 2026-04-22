@@ -6,7 +6,6 @@ let package = Package(
     name: "ios-frameworks-benchmark",
     platforms: [
         .iOS(.v16),
-        .macOS(.v13)
     ],
     products: [
         .library(
@@ -18,7 +17,6 @@ let package = Package(
         .target(
             name: "PixelSamplerSDK",
             path: "Sources/PixelSamplerSDK",
-            exclude: ["Info.plist"],
             swiftSettings: [
                 .define("PIXEL_SAMPLER_LOGGING", .when(configuration: .release))
             ]
