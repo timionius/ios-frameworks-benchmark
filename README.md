@@ -75,7 +75,7 @@ if let results = PixelSamplerSDK.shared.getResults() {
 2. Hooking into frame pipeline: PixelSamplerSDK.windowIsReady(window). Since that time, SDK registers a callback on CADisplayLinke. 
 3. Passive Snapshot: We take a 100x100 snapshot of the screen center using drawHierarchy on each 5th frame to minimize overhead on the app resources utilization.
 4. Stability Logic: We compare the DJB2 hash of snapshots.
-5. Benchmark Point: As soon as the hash stops changing for the duration of requiredStableFrames, we finalize the sampling job. The reported time is the timestamp of the first frame in that unchanged sequence, ensuring the benchmark represents the exact moment the animation ended.
+5. Benchmark Point: As soon as the hash stops changing for the duration of requiredStableFrames, we finalize the sampling job. The reported time is the timestamp of the first frame in that unchanged sequence, ensuring the benchmark represents the moment the animation ended. Worst-case inaccuracy ~67ms (4 × 16.67ms).
 
 # 📈 Performance Benchmarks
 
