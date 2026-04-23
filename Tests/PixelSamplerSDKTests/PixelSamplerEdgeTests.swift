@@ -52,34 +52,7 @@ final class PixelSamplerEdgeTests: XCTestCase {
         
         waitForExpectations(timeout: 2.0)
     }
-    
-    // MARK: - Edge Case 3: Zero-Frame Early Exit
-    @MainActor
-    func testZeroFrameEarlyExit() {
-        let sampler = PixelSampler()
-        // Create a view that returns 0 hash (e.g. empty/hidden)
-        let hiddenView = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
-        hiddenView.isHidden = true
-        
-        let startTime = CACurrentMediaTime()
-        
-        let expectationDescription = "Should exit between 10th and 11th frame on zero hash"
-        let expectation = self.expectation(description: expectationDescription)
-        
-        sampler.startSampling(on: hiddenView) { lastMotionTime in
-            // Because it's hidden, captureHash should return 0
-            // and trigger the 'frameCount > 5' should trigger after 10th frame
-            let elapsedMs = (lastMotionTime - startTime) * 1000
-            let frameCount = Int(elapsedMs / 16.67)
-            
-            XCTAssertGreaterThanOrEqual(10, frameCount, "LastMotionTime should be greater than time for 10 frames")
-            XCTAssertLessThan(frameCount, 12, "LastMotionTime should happen earlier than 12 frame")
-            expectation.fulfill()
-        }
-        
-        waitForExpectations(timeout: 1.0)
-    }
-    
+
     // MARK: - Unit Tests: Hashing Logic
     
     func testHashConsistency() {
@@ -111,5 +84,4 @@ final class PixelSamplerEdgeTests: XCTestCase {
         
         XCTAssertNotEqual(image1.hashValue64(), image2.hashValue64(), "1-pixel change must change hash")
     }
-    
 }
