@@ -12,11 +12,12 @@ public class PixelSampler {
     private var sampleRenderStartTime: CFTimeInterval = 0
     private var lastMotionTime: CFTimeInterval = 0
     private var lastRawHash: UInt64 = 0
-    private var frameCount = 0
+    private var lastSampleTime: CFTimeInterval = 0
     private var consecutiveUnchangedCount = 0
     private var isComplete = false
     
     // Configuration
+    private let sampleInterval: CFTimeInterval = 0.05
     private let requiredStableFrames = 4
     private let sampleSize: CGFloat = 70
     
@@ -29,9 +30,9 @@ public class PixelSampler {
         self.targetView = view
         self.completion = completion
         self.isComplete = false
-        self.frameCount = 0
         self.consecutiveUnchangedCount = 0
         self.lastRawHash = 0
+        self.lastSampleTime = CACurrentMediaTime()
         self.startTime = CACurrentMediaTime()
         self.lastMotionTime = self.startTime
         
@@ -45,13 +46,17 @@ public class PixelSampler {
     @objc private func performCheck() {
         guard let view = targetView, !isComplete else { return }
         
-        self.frameCount += 1
-        if self.frameCount % 5 != 0 { return }
-
-        let rawHash = self.captureHash(from: view)
+        let now = CACurrentMediaTime()
+        if now - lastSampleTime < sampleInterval {
+            PSLog("⏱️ [PixelSampler] Skipped \(String(format: "%.4f", (now - lastSampleTime)*1000)))ms")
+            return
+        }
+        lastSampleTime = now
         
+        let rawHash = self.captureHash(from: view)
+        PSLog("⏱️ [PixelSampler] Hash: \(rawHash)")
         // Zero-Frame early exit
-        if rawHash == 0 && self.frameCount > 5 {
+        if rawHash == 0 {
             self.finalize()
             return
         }
@@ -90,7 +95,7 @@ public class PixelSampler {
             view.drawHierarchy(in: view.bounds, afterScreenUpdates: false)
         }
         let durationMs = (CACurrentMediaTime() - sampleRenderStartTime) * 1000
-        PSLog("⏱️ [PixelSampler] frame \(frameCount): \(String(format: "%.4f", durationMs))ms")
+        PSLog("⏱️ [PixelSampler] Sample render time: \(String(format: "%.4f", durationMs))ms")
         return image.samplingHash()
     }
     
